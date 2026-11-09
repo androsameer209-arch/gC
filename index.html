@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCS - General Communication System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+        body { font-family: 'Cairo', sans-serif; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
+            section { display: none !important; }
+            section:not(.hidden) { display: block !important; }
+            .printable-area { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 10px !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="no-print bg-slate-900 text-white shadow-lg sticky top-0 z-50 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="bg-gradient-to-tr from-slate-400 to-slate-600 p-2.5 rounded-xl font-black text-xl text-white shadow">GCS</div>
+                <div>
+                    <h1 class="text-base md:text-lg font-black tracking-wide text-white">GCS - General Communication System</h1>
+                    <p class="text-xs text-slate-400 font-semibold">تليفون: 01003145440 | المبيعات • الصيانة • عروض الأسعار • أذون التوريد</p>
+                </div>
+            </div>
+            
+            <nav class="flex flex-wrap gap-1 bg-slate-800/80 p-1 rounded-xl text-xs md:text-sm font-bold">
+                <button id="tab-invoice" onclick="switchTab('invoice')" class="px-3 py-2 rounded-lg transition bg-blue-600 text-white shadow">📄 الفواتير</button>
+                <button id="tab-receipt" onclick="switchTab('receipt')" class="px-3 py-2 rounded-lg transition text-slate-300 hover:text-white">💵 سندات القبض</button>
+                <button id="tab-quotation" onclick="switchTab('quotation')" class="px-3 py-2 rounded-lg transition text-slate-300 hover:text-white">📋 عروض الأسعار</button>
+                <button id="tab-inventory" onclick="switchTab('inventory')" class="px-3 py-2 rounded-lg transition text-slate-300 hover:text-white">📦 المخزن</button>
+                <button id="tab-client-statement" onclick="switchTab('client-statement')" class="px-3 py-2 rounded-lg transition text-slate-300 hover:text-white">👤 كشف حساب شامل</button>
+                <button id="tab-suppliers" onclick="switchTab('suppliers')" class="px-3 py-2 rounded-lg transition text-slate-300 hover:text-white">🤝 الموردين</button>
+                <button id="tab-warehouse-vouchers" onclick="switchTab('warehouse-vouchers')" class="px-3 py-2 rounded-lg transition text-slate-300 hover:text-white">📑 أذون المخزن</button>
+                <button id="tab-maintenance" onclick="switchTab('maintenance')" class="px-3 py-2 rounded-lg transition text-slate-300 hover:text-white">🛠️ الصيانة</button>
+                <button id="tab-accounts" onclick="switchTab('accounts')" class="px-3 py-2 rounded-lg transition text-slate-300 hover:text-white">📊 الحسابات والأرشيف</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="no-print bg-slate-900 text-slate-300 text-xs py-1.5 px-4 text-center font-bold flex justify-center items-center gap-2 border-b border-slate-700">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>المنظومة متصلة بالسحابة أونلاين 🌐 - تم استعادة كل أصناف المخزن وكشف الحساب الشامل</span>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6">
+
+        <!-- SECTION 1: INVOICES -->
+        <section id="section-invoice" class="space-y-6">
+            <div class="no-print flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <div class="text-slate-600 text-sm font-semibold">إصدار الفواتير وخصم الكميات من المخزن تلقائياً.</div>
+                <div class="flex gap-2">
+                    <button onclick="printElement('printable-invoice')" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-bold shadow text-sm">🖨️ طباعة الفاتورة</button>
+                    <button onclick="saveAndPrintInvoice()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow text-sm">💾 حفظ وطباعة</button>
+                    <button onclick="saveOnlyInvoice()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow text-sm">💾 حفظ بالحسابات</button>
+                </div>
+            </div>
+
+            <div id="printable-invoice" class="printable-area bg-white p-6 md:p-10 rounded-xl shadow-md border border-slate-200 max-w-4xl mx-auto">
+                <div class="flex justify-between items-start border-b-2 border-slate-800 pb-5">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="bg-slate-900 text-amber-400 font-black px-2.5 py-0.5 rounded text-lg">GCS</span>
+                            <h2 class="text-xl md:text-2xl font-black text-slate-900">General Communication System (GCS)</h2>
+                        </div>
+                        <p class="text-xs text-slate-600 font-bold">أنظمة أمنية وتكنولوجية • كاميرات مراقبة • سنترالات وبصمة</p>
+                        <p class="text-xs font-bold text-blue-700 mt-1">تليفون: 01003145440</p>
+                    </div>
+                    <div class="text-left">
+                        <span class="inline-block bg-slate-900 text-white font-black text-base px-3 py-1 rounded shadow-sm mb-2">فاتورة مبيعات رسمية</span>
+                        <div class="text-xs text-slate-600 space-y-0.5">
+                            <p><span class="font-bold">رقم الفاتورة:</span> <span id="inv-number-display" class="font-mono font-extrabold text-red-600">INV-1001</span></p>
+                            <p><span class="font-bold">التاريخ:</span> <input type="date" id="inv-date" class="border-b border-slate-300 text-xs bg-transparent font-bold"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 my-4 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs md:text-sm">
+                    <div class="flex items-center gap-2"><label class="font-bold whitespace-nowrap">اسم العميل:</label><input type="text" id="cust-name" placeholder="اسم العميل / الشركة" class="w-full bg-white border rounded px-2.5 py-1"></div>
+                    <div class="flex items-center gap-2"><label class="font-bold whitespace-nowrap">الهاتف:</label><input type="text" id="cust-phone" placeholder="01xxxxxxxxx" class="w-full bg-white border rounded px-2.5 py-1"></div>
+                    <div class="flex items-center gap-2"><label class="font-bold whitespace-nowrap">أمر التوريد (P.O):</label><input type="text" id="inv-po-number" placeholder="رقم أمر التوريد" class="w-full bg-white border rounded px-2.5 py-1 font-mono"></div>
+                    <div class="flex items-center gap-2 md:col-span-3"><label class="font-bold whitespace-nowrap">العنوان:</label><input type="text" id="cust-address" placeholder="عنوان التركيب" class="w-full bg-white border rounded px-2.5 py-1"></div>
+                </div>
+
+                <div id="price-warning-box" class="hidden no-print bg-red-100 border-r-4 border-red-500 text-red-700 p-3 mb-4 rounded text-xs font-bold animate-pulse">
+                    ⚠️ تنبيه: سعر البيع أقل من أو قريب جداً من سعر التكلفة!
+                </div>
+
+                <div class="overflow-x-auto my-4">
+                    <table class="w-full text-right border-collapse text-xs md:text-sm">
+                        <thead>
+                            <tr class="bg-slate-900 text-white">
+                                <th class="p-2 border w-10 text-center">#</th>
+                                <th class="p-2 border">الصنف / الموديل</th>
+                                <th class="p-2 border w-36">الرقم المسلسل (S/N)</th>
+                                <th class="p-2 border w-16 text-center">الكمية</th>
+                                <th class="p-2 border w-24 text-center">سعر البيع</th>
+                                <th class="p-2 border w-28 text-center">الإجمالي</th>
+                                <th class="p-2 border w-10 text-center no-print">حذف</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoice-items-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="no-print mb-4">
+                    <button onclick="addInvoiceRow()" class="bg-slate-100 hover:bg-slate-200 text-blue-800 font-bold px-3 py-1.5 rounded border text-xs">➕ إضافة صنف من المخزن</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t text-xs">
+                    <div class="space-y-2 bg-slate-50 p-3 rounded border">
+                        <h4 class="font-bold border-b pb-1">مصاريف الخدمات والتركيب</h4>
+                        <div class="flex justify-between items-center"><span>كابلات وباور:</span><input type="number" id="cost-cables" value="0" oninput="calculateTotals()" class="w-24 text-left border rounded p-1 font-bold"></div>
+                        <div class="flex justify-between items-center"><span>أجور التركيب والبرمجة:</span><input type="number" id="cost-installation" value="0" oninput="calculateTotals()" class="w-24 text-left border rounded p-1 font-bold"></div>
+                        <div class="flex justify-between items-center"><span>طريقة الدفع:</span>
+                            <select id="inv-payment-type" class="w-36 border rounded p-1 font-bold">
+                                <option value="نقدي">نقدي (خزينة)</option><option value="آجل">آجل (ديون)</option><option value="تحويل بنكي">تحويل بنكي</option>
+                            </select>
+                        </div>
+                        <div class="flex justify-between items-center"><span>اسم الفني المسؤول:</span><input type="text" id="tech-name" placeholder="اسم الفني" class="w-36 border rounded p-1"></div>
+                    </div>
+                    <div class="space-y-2 bg-slate-50 p-3 rounded border">
+                        <h4 class="font-bold border-b pb-1">الملخص المالي</h4>
+                        <div class="flex justify-between items-center"><span>إجمالي الأجهزة:</span><span id="sum-devices" class="font-bold">0.00 ج.م</span></div>
+                        <div class="flex justify-between items-center"><span>إجمالي الخدمات:</span><span id="sum-services" class="font-bold">0.00 ج.م</span></div>
+                        <div class="flex justify-between items-center"><span>نسبة الضريبة (%):</span><input type="number" id="tax-rate" value="14" oninput="calculateTotals()" class="w-20 text-left border rounded p-1 font-bold text-purple-700"></div>
+                        <div class="flex justify-between items-center"><span>قيمة الضريبة:</span><span id="sum-tax-val" class="font-bold text-purple-700">0.00 ج.م</span></div>
+                        <div class="flex justify-between items-center text-sm font-black border-t pt-1"><span>الإجمالي الكلي:</span><span id="sum-grand-total" class="text-blue-700">0.00 ج.م</span></div>
+                        <div class="flex justify-between items-center border-t pt-1"><span>المدفوع:</span><input type="number" id="paid-amount" value="0" oninput="calculateTotals()" class="w-24 text-left border rounded p-1 font-bold text-emerald-700"></div>
+                        <div class="flex justify-between items-center font-bold text-red-600"><span>المتبقي:</span><span id="remaining-amount">0.00 ج.م</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: RECEIPT VOUCHERS -->
+        <section id="section-receipt" class="hidden space-y-6">
+            <div class="no-print flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border">
+                <div><h3 class="font-bold text-lg">إصدار سند قبض نقدية / تحويل</h3><p class="text-xs text-slate-500">تحصيل الدفعات وتسديد ديون العملاء.</p></div>
+                <div class="flex gap-2">
+                    <button onclick="printElement('printable-receipt')" class="bg-slate-700 text-white font-bold px-3 py-2 rounded text-xs shadow">🖨️ طباعة السند</button>
+                    <button onclick="printReceiptVoucher()" class="bg-emerald-600 text-white font-bold px-4 py-2 rounded text-sm shadow">💾 حفظ وطباعة السند</button>
+                </div>
+            </div>
+            <div id="printable-receipt" class="printable-area bg-white p-8 rounded-xl shadow border max-w-3xl mx-auto space-y-6">
+                <div class="flex justify-between items-center border-b-2 border-emerald-700 pb-4">
+                    <div><h2 class="text-xl font-black">GCS - General Communication System</h2><p class="text-xs font-bold">سند قبض نقدية | 01003145440</p></div>
+                    <div class="text-left"><span class="bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded text-xs">سند قبض</span><p class="text-xs font-mono font-bold text-red-600 mt-2">رقم: <span id="receipt-id-display">REC-3001</span></p><p class="text-xs">التاريخ: <input type="date" id="receipt-date" class="bg-transparent font-bold border-b"></p></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded border">
+                    <div><label class="font-bold mb-1 block">استلمنا من السيد / الشركة:</label><input type="text" id="receipt-cust-name" class="w-full border rounded p-2 font-bold"></div>
+                    <div><label class="font-bold mb-1 block">مبلغ وقدره (ج.م):</label><input type="number" id="receipt-amount" class="w-full border rounded p-2 font-black text-emerald-700 text-base"></div>
+                    <div class="md:col-span-2"><label class="font-bold mb-1 block">وذلك عن (السبب/الفاتورة):</label><input type="text" id="receipt-for" class="w-full border rounded p-2"></div>
+                    <div><label class="font-bold mb-1 block">طريقة الدفع:</label><select id="receipt-method" class="w-full border rounded p-2 font-bold"><option value="نقداً">نقداً (خزينة)</option><option value="تحويل بنكي">تحويل بنكي / InstaPay</option></select></div>
+                    <div><label class="font-bold mb-1 block">المستلم:</label><input type="text" id="receipt-receiver" class="w-full border rounded p-2"></div>
+                </div>
+                <div class="flex justify-between text-xs pt-6 border-t"><div class="text-center w-36"><p class="font-bold">توقيع المستلم</p></div><div class="text-center w-36"><p class="font-bold">توقيع الدافِع</p></div></div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: QUOTATIONS -->
+        <section id="section-quotation" class="hidden space-y-6">
+            <div class="no-print flex flex-wrap justify-between items-center gap-4 bg-slate-200 p-4 rounded-xl shadow-sm border border-slate-300">
+                <div>
+                    <h3 class="font-bold text-lg text-slate-800">إصدار عرض سعر فضي معتمد - GCS Silver Edition</h3>
+                    <p class="text-xs text-slate-600">تصميم وتنسيق مالي فضي فاخر ومناسب للشركات والمؤسسات.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="printQuotation()" class="bg-slate-700 hover:bg-slate-800 text-white font-bold px-4 py-2 rounded-lg text-sm shadow">🖨️ طباعة عرض السعر</button>
+                    <button onclick="convertQuotationToInvoice()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold px-4 py-2 rounded-lg text-sm shadow">🔄 تحويل لفاتورة مبيعات</button>
+                </div>
+            </div>
+
+            <div id="printable-quotation" class="printable-area bg-gradient-to-b from-slate-50 via-slate-100 to-slate-200 p-8 rounded-xl shadow-md border-2 border-slate-400 max-w-4xl mx-auto space-y-6">
+                <div class="flex justify-between items-start border-b-2 border-slate-500 pb-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="bg-gradient-to-r from-slate-600 to-slate-800 text-slate-100 font-black px-3 py-1 rounded text-xl border border-slate-400 shadow-inner">GCS</span>
+                            <h2 class="text-xl font-black text-slate-900">General Communication System</h2>
+                        </div>
+                        <p class="text-xs text-slate-700 font-bold">عروض أسعار متميزة • أنظمة أمنية وشبكات • تليفون: 01003145440</p>
+                    </div>
+                    <div class="text-left">
+                        <span class="bg-slate-300 text-slate-900 font-black px-4 py-1.5 rounded text-sm border border-slate-400 shadow-sm">عرض سعر فضي رسمي</span>
+                        <p class="text-xs font-mono font-bold text-slate-800 mt-2">رقم العرض: <span id="quote-number-display" class="text-red-700">QT-8001</span></p>
+                        <p class="text-xs text-slate-600 mt-0.5">التاريخ: <input type="date" id="quote-date" class="bg-transparent font-bold border-b border-slate-400"></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-white/70 p-3 rounded-lg border border-slate-300 text-xs md:text-sm shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <label class="font-bold text-slate-800 whitespace-nowrap">اسم العميل / الجهة:</label>
+                        <input type="text" id="quote-cust-name" placeholder="اسم الشركة أو العميل" class="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="font-bold text-slate-800 whitespace-nowrap">الهاتف:</label>
+                        <input type="text" id="quote-cust-phone" placeholder="01xxxxxxxxx" class="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="font-bold text-slate-800 whitespace-nowrap">أمر التوريد (P.O):</label>
+                        <input type="text" id="quote-po-number" placeholder="رقم P.O" class="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none font-mono">
+                    </div>
+                    <div class="flex items-center gap-2 md:col-span-3">
+                        <label class="font-bold text-slate-800 whitespace-nowrap">موقع المشروع / العنوان:</label>
+                        <input type="text" id="quote-cust-address" placeholder="عنوان المقر أو الموقع" class="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none">
+                    </div>
+                </div>
+
+                <table class="w-full text-right border-collapse text-xs md:text-sm bg-white shadow-sm rounded overflow-hidden">
+                    <thead>
+                        <tr class="bg-gradient-to-r from-slate-700 to-slate-800 text-slate-100">
+                            <th class="p-2 border border-slate-600 w-10 text-center">#</th>
+                            <th class="p-2 border border-slate-600">الصنف / الموديل</th>
+                            <th class="p-2 border border-slate-600 w-16 text-center">الكمية</th>
+                            <th class="p-2 border border-slate-600 w-24 text-center">سعر الوحدة</th>
+                            <th class="p-2 border border-slate-600 w-28 text-center">الإجمالي</th>
+                            <th class="p-2 border border-slate-600 w-10 text-center no-print">حذف</th>
+                        </tr>
+                    </thead>
+                    <tbody id="quote-items-body"></tbody>
+                </table>
+
+                <div class="no-print">
+                    <button onclick="addQuoteRow()" class="bg-slate-300 hover:bg-slate-400 text-slate-900 font-bold px-3 py-1.5 rounded border border-slate-400 text-xs shadow-sm">➕ إضافة صنف لعرض السعر</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-2 border-t border-slate-400">
+                    <div class="space-y-2 bg-white/80 p-3 rounded border border-slate-300">
+                        <h4 class="font-bold text-slate-900 border-b pb-1">التكاليف والتركيب التقديري</h4>
+                        <div class="flex justify-between items-center">
+                            <span>أسلاك وإكسسوارات تقديرية:</span>
+                            <input type="number" id="quote-cables" value="0" oninput="calculateQuoteTotals()" class="w-24 text-left bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-bold">
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>أجور التركيب والبرمجة:</span>
+                            <input type="number" id="quote-installation" value="0" oninput="calculateQuoteTotals()" class="w-24 text-left bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-bold">
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>نسبة الضريبة (%):</span>
+                            <input type="number" id="quote-tax-rate" value="14" oninput="calculateQuoteTotals()" class="w-20 text-left bg-white border border-slate-300 rounded px-1.5 py-0.5 outline-none font-bold text-slate-800">
+                        </div>
+                    </div>
+                    <div class="space-y-2 bg-white/80 p-3 rounded border border-slate-300">
+                        <h4 class="font-bold text-slate-900 border-b pb-1">إجمالي عرض السعر</h4>
+                        <div class="flex justify-between items-center"><span>إجمالي الأجهزة:</span><span id="quote-sum-devices" class="font-bold">0.00 ج.م</span></div>
+                        <div class="flex justify-between items-center"><span>إجمالي الخدمات والأسلاك:</span><span id="quote-sum-services" class="font-bold">0.00 ج.م</span></div>
+                        <div class="flex justify-between items-center"><span>قيمة الضريبة:</span><span id="quote-sum-tax" class="font-bold text-slate-800">0.00 ج.م</span></div>
+                        <div class="flex justify-between items-center text-sm font-black border-t border-slate-400 pt-1 text-slate-900"><span>الإجمالي الكلي:</span><span id="quote-sum-grand" class="text-blue-900">0.00 ج.م</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: INVENTORY -->
+        <section id="section-inventory" class="hidden space-y-6">
+            <div class="flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm border">
+                <div><h3 class="font-bold text-lg">مخزن شركة GCS وتاريخ المبيعات</h3><p class="text-xs text-slate-500">حركة الأصناف وآخر سعر تم البيع به.</p></div>
+                <div class="flex gap-2">
+                    <button onclick="printElement('printable-inventory')" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-3 py-2 rounded text-xs shadow">🖨️ طباعة المخزن</button>
+                    <button onclick="exportTableToExcel('inventory-table-body', 'مخزن_GCS')" class="bg-emerald-700 text-white font-bold px-3 py-2 rounded text-xs shadow">📊 تصدير إكسل</button>
+                    <button onclick="openAddProductModal()" class="bg-emerald-600 text-white font-bold px-4 py-2 rounded text-sm shadow">➕ إضافة منتج</button>
+                </div>
+            </div>
+            <div id="printable-inventory" class="printable-area bg-white rounded-xl shadow-sm border overflow-hidden p-4">
+                <h3 class="font-bold text-base mb-3 hidden print:block">تقرير مخزن شركة GCS</h3>
+                <div class="no-print p-4 bg-slate-50 border-b flex justify-between items-center mb-3">
+                    <select id="inv-category-filter" onchange="renderInventoryTable()" class="border rounded px-2 py-1 text-xs font-bold">
+                        <option value="all">كل التصنيفات</option><option value="كاميرات مراقبة">كاميرات مراقبة</option><option value="أجهزة تسجيل NVR/DVR">أجهزة تسجيل NVR/DVR</option><option value="سنترالات وهواتف">سنترالات وهواتف</option>
+                    </select>
+                    <input type="text" id="inv-search" onkeyup="renderInventoryTable()" placeholder="بحث في المخزن..." class="border rounded px-3 py-1.5 text-xs w-64">
+                </div>
+                <table class="w-full text-right text-xs md:text-sm">
+                    <thead class="bg-slate-900 text-white text-xs">
+                        <tr><th class="p-3">الكود</th><th class="p-3">اسم الصنف</th><th class="p-3">التكلفة</th><th class="p-3">سعر البيع</th><th class="p-3 text-center">الرصيد</th><th class="p-3">آخر سعر بيع</th><th class="p-3">تاريخ البيع</th><th class="p-3 text-center no-print">إجراءات</th></tr>
+                    </thead>
+                    <tbody id="inventory-table-body" class="divide-y"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION: CLIENT STATEMENT (شامل لكل الأقسام) -->
+        <section id="section-client-statement" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex flex-wrap justify-between items-center gap-4 border-b pb-4 mb-4">
+                    <div>
+                        <h3 class="font-bold text-xl text-slate-800">👤 كشف حساب شامل للعميل / الشركة (جميع الأقسام)</h3>
+                        <p class="text-xs text-slate-500 font-semibold">يشمل الفواتير، سندات القبض، أذون التوريد، وأوامر الصيانة.</p>
+                    </div>
+                    <div class="flex gap-2 no-print">
+                        <button onclick="printElement('printable-client-statement')" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-4 py-2 rounded-lg text-sm shadow">🖨️ طباعة كشف الحساب الشامل</button>
+                        <button onclick="exportTableToExcel('statement-financial-body', 'كشف_حساب_شامل')" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 py-2 rounded-lg text-sm shadow">📊 تصدير لإكسل</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 no-print">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">اختر العميل / الشركة:</label>
+                        <select id="statement-client-select" onchange="renderClientStatement()" class="w-full border border-slate-300 rounded-lg p-2 text-sm font-bold bg-slate-50 outline-none">
+                            <option value="">-- اختر العملاء المسجلين --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="printable-client-statement" class="printable-area space-y-6 bg-white p-4 rounded">
+                    <div class="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div>
+                            <h4 id="stmt-client-name-display" class="text-lg font-black text-slate-900">اسم العميل: (اختر عميلاً)</h4>
+                            <p class="text-xs text-slate-500 font-bold" id="stmt-date-display">تاريخ التقرير: 2026-11-08</p>
+                        </div>
+                        <div class="text-left">
+                            <span class="bg-slate-900 text-white font-extrabold px-3 py-1 rounded text-xs">كشف حساب موحد معتمد</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <p class="text-xs font-bold text-slate-500">إجمالي المبيعات والفواتير</p>
+                            <h3 id="stmt-total-invoices" class="text-lg font-black text-slate-800 mt-1">0.00 ج.م</h3>
+                        </div>
+                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+                            <p class="text-xs font-bold text-emerald-800">إجمالي المدفوع والمحصل</p>
+                            <h3 id="stmt-total-paid" class="text-lg font-black text-emerald-700 mt-1">0.00 ج.م</h3>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded-xl border border-blue-200">
+                            <p class="text-xs font-bold text-blue-800">إجمالي الصيانة والخدمات</p>
+                            <h3 id="stmt-total-maint" class="text-lg font-black text-blue-700 mt-1">0.00 ج.م</h3>
+                        </div>
+                        <div class="bg-red-50 p-3 rounded-xl border border-red-200">
+                            <p class="text-xs font-bold text-red-800">صافي المتبقي والديون</p>
+                            <h3 id="stmt-total-remaining" class="text-xl font-black text-red-600 mt-1">0.00 ج.م</h3>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-sm text-slate-800 mb-2 border-b pb-1">1. السجل المالي (الفواتير وسندات القبض):</h4>
+                        <table class="w-full text-right border-collapse text-xs md:text-sm">
+                            <thead>
+                                <tr class="bg-slate-900 text-white">
+                                    <th class="p-2.5 border">التاريخ</th>
+                                    <th class="p-2.5 border">رقم العملية / البيان</th>
+                                    <th class="p-2.5 border">نوع الحركة</th>
+                                    <th class="p-2.5 border">مبلغ مدين (فواتير)</th>
+                                    <th class="p-2.5 border">مبلغ دائن (سداد)</th>
+                                    <th class="p-2.5 border">الرصيد المتبقي</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statement-financial-body" class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-sm text-slate-800 mb-2 border-b pb-1">2. أذون المخزن وأوامر التوريد المرتبطة:</h4>
+                        <table class="w-full text-right border-collapse text-xs md:text-sm">
+                            <thead>
+                                <tr class="bg-slate-800 text-white">
+                                    <th class="p-2.5 border">رقم الإذن</th>
+                                    <th class="p-2.5 border">التاريخ</th>
+                                    <th class="p-2.5 border">نوع الحركة</th>
+                                    <th class="p-2.5 border">رقم أمر التوريد (P.O)</th>
+                                    <th class="p-2.5 border">الأصناف المصروفة / المستلمة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statement-warehouse-body" class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-sm text-slate-800 mb-2 border-b pb-1">3. سجل الصيانة وزيارات الفنيين:</h4>
+                        <table class="w-full text-right border-collapse text-xs md:text-sm">
+                            <thead>
+                                <tr class="bg-slate-800 text-white">
+                                    <th class="p-2.5 border">رقم الأمر</th>
+                                    <th class="p-2.5 border">التاريخ</th>
+                                    <th class="p-2.5 border">الفني المسؤول</th>
+                                    <th class="p-2.5 border">وصف العطل / سبب الزيارة</th>
+                                    <th class="p-2.5 border">تكلفة الخدمة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statement-maintenance-body" class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4.05: SUPPLIERS -->
+        <section id="section-suppliers" class="hidden space-y-6">
+            <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border">
+                <div><h3 class="font-bold text-lg">إدارة الموردين والشركات</h3></div>
+                <div class="flex gap-2">
+                    <button onclick="printElement('printable-suppliers')" class="bg-slate-800 text-white font-bold px-3 py-2 rounded text-xs shadow">🖨️ طباعة الموردين</button>
+                    <button onclick="exportTableToExcel('suppliers-table-body', 'قائمة_الموردين')" class="bg-emerald-700 text-white font-bold px-3 py-2 rounded text-xs shadow">📊 تصدير إكسل</button>
+                    <button onclick="openAddSupplierModal()" class="bg-blue-600 text-white font-bold px-4 py-2 rounded text-sm shadow">➕ إضافة مورد</button>
+                </div>
+            </div>
+            <div id="printable-suppliers" class="printable-area bg-white rounded-xl shadow-sm border overflow-hidden p-4">
+                <h3 class="font-bold text-base mb-3 hidden print:block">قائمة الموردين المعتمدين</h3>
+                <div class="no-print p-4 bg-slate-50 border-b mb-3"><input type="text" id="sup-search" onkeyup="renderSuppliersTable()" placeholder="بحث بالمورد..." class="border rounded px-3 py-1 text-xs w-60"></div>
+                <table class="w-full text-right text-xs md:text-sm">
+                    <thead class="bg-slate-900 text-white text-xs"><tr><th class="p-3">المورد</th><th class="p-3">الهاتف</th><th class="p-3">التخصص</th><th class="p-3 text-center no-print">حذف</th></tr></thead>
+                    <tbody id="suppliers-table-body" class="divide-y"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION 4.1: WAREHOUSE VOUCHERS -->
+        <section id="section-warehouse-vouchers" class="hidden space-y-6">
+            <div class="flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm border">
+                <div><h3 class="font-bold text-lg text-slate-800">أذون الاستلام والتوريد وأوامر التوريد</h3><p class="text-xs text-slate-500">إدارة أذون المخزن للشركات والمشاريع.</p></div>
+                <div class="flex gap-2">
+                    <button onclick="exportTableToExcel('warehouse-table-body', 'أذون_المخزن')" class="bg-emerald-700 text-white font-bold px-3 py-2 rounded text-xs shadow">📊 تصدير إكسل</button>
+                    <button onclick="openAddWarehouseVoucherModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-sm shadow">➕ إذن مخزني / أمر توريد جديد</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden p-4">
+                <div class="no-print p-4 bg-slate-50 border-b flex justify-between items-center mb-3">
+                    <h4 class="font-bold text-slate-800">أرشيف الأذون وأوامر التوريد</h4>
+                    <input type="text" id="wh-search" onkeyup="renderWarehouseTable()" placeholder="بحث باسم الشركة / الجهة..." class="border rounded px-3 py-1.5 text-xs w-72">
+                </div>
+                <table class="w-full text-right text-xs md:text-sm">
+                    <thead class="bg-slate-900 text-white text-xs">
+                        <tr><th class="p-3">رقم الإذن</th><th class="p-3">النوع</th><th class="p-3">التاريخ</th><th class="p-3">اسم الشركة / الجهة</th><th class="p-3">المسؤول</th><th class="p-3 text-center">الأصناف</th><th class="p-3 text-center no-print">التفاصيل والطباعة</th><th class="p-3 text-center no-print">حذف</th></tr>
+                    </thead>
+                    <tbody id="warehouse-table-body" class="divide-y"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION 5: MAINTENANCE -->
+        <section id="section-maintenance" class="hidden space-y-6">
+            <div class="flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm border">
+                <div><h3 class="font-bold text-lg text-slate-800">قسم الصيانة وزيارات الشركات</h3><p class="text-xs text-slate-500">تسجيل ومتابعة أعطال وزيارات الشركات والفنيين.</p></div>
+                <div class="flex gap-2">
+                    <button onclick="exportTableToExcel('maintenance-table-body', 'سجل_الصيانة')" class="bg-emerald-700 text-white font-bold px-3 py-2 rounded text-xs shadow">📊 تصدير إكسل</button>
+                    <button onclick="openAddMaintenanceModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg text-sm shadow">🛠️ تسجيل أمر زيارة</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden p-4">
+                <div class="no-print p-4 bg-slate-50 border-b flex justify-between items-center mb-3">
+                    <h4 class="font-bold text-slate-800">سجل الصيانة والزيارات</h4>
+                    <input type="text" id="maint-search" onkeyup="renderMaintenanceTable()" placeholder="بحث باسم الشركة في الصيانة..." class="border rounded px-3 py-1.5 text-xs w-72">
+                </div>
+                <table class="w-full text-right text-xs md:text-sm">
+                    <thead class="bg-slate-900 text-white text-xs">
+                        <tr><th class="p-3">أمر الصيانة</th><th class="p-3">التاريخ</th><th class="p-3">اسم الشركة</th><th class="p-3">الفني</th><th class="p-3">العطل</th><th class="p-3">التكلفة</th><th class="p-3 text-center no-print">التفاصيل والطباعة</th><th class="p-3 text-center no-print">حذف</th></tr>
+                    </thead>
+                    <tbody id="maintenance-table-body" class="divide-y"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION 7: ACCOUNTS -->
+        <section id="section-accounts" class="hidden space-y-6">
+            <div class="no-print flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border">
+                <h3 class="font-bold text-lg">أرشيف الحسابات والفواتير</h3>
+                <div class="flex gap-2">
+                    <button onclick="exportTableToExcel('accounts-table-body', 'أرشيف_الحسابات')" class="bg-emerald-700 text-white font-bold px-3 py-2 rounded text-xs shadow">📊 تصدير إكسل</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden p-4">
+                <div class="no-print p-4 bg-slate-50 border-b flex justify-between items-center mb-3">
+                    <h3 class="font-bold">أرشيف الفواتير والحسابات</h3>
+                    <input type="text" id="search-input" onkeyup="renderAccountsTable()" placeholder="بحث بالشركة..." class="border rounded px-3 py-1 text-xs w-60">
+                </div>
+                <table class="w-full text-right text-xs md:text-sm">
+                    <thead class="bg-slate-900 text-white text-xs">
+                        <tr><th class="p-3">رقم الفاتورة</th><th class="p-3">التاريخ</th><th class="p-3">اسم الشركة / العميل</th><th class="p-3">الإجمالي</th><th class="p-3">المدفوع</th><th class="p-3">المتبقي</th><th class="p-3 text-center no-print">التفاصيل والطباعة</th><th class="p-3 text-center no-print">حذف</th></tr>
+                    </thead>
+                    <tbody id="accounts-table-body" class="divide-y"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modals -->
+    <div id="modal-wh-details" class="fixed inset-0 bg-slate-900/60 hidden flex justify-center items-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div id="printable-wh-single" class="printable-area p-4 space-y-4 bg-white border rounded-lg">
+                <div class="flex justify-between items-center border-b-2 border-slate-900 pb-3">
+                    <div>
+                        <h2 class="text-lg font-black text-slate-900">GCS - General Communication System</h2>
+                        <p class="text-xs font-bold text-slate-600">إذن مخزني / أمر توريد رسمي</p>
+                    </div>
+                    <div class="text-left">
+                        <span id="wh-modal-id" class="bg-slate-900 text-white font-mono font-bold text-xs px-2.5 py-1 rounded">WH-9001</span>
+                        <p id="wh-modal-date" class="text-xs font-bold text-slate-500 mt-1">2026-11-08</p>
+                    </div>
+                </div>
+                <div id="wh-modal-info" class="text-xs space-y-1 bg-slate-50 p-3 rounded border"></div>
+                <div class="space-y-1">
+                    <h4 class="font-bold text-xs">بيان الأصناف المرفقة:</h4>
+                    <table class="w-full text-right border-collapse text-xs">
+                        <thead><tr class="bg-slate-800 text-white"><th class="p-2 border">كود الصنف</th><th class="p-2 border">اسم الصنف</th><th class="p-2 border text-center">الكمية</th></tr></thead>
+                        <tbody id="wh-modal-items-list" class="divide-y"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="flex justify-between items-center pt-3 border-t">
+                <button onclick="printElement('printable-wh-single')" class="px-4 py-2 bg-emerald-600 text-white rounded font-bold text-xs shadow hover:bg-emerald-700">🖨️ طباعة هذا الأمر فقط</button>
+                <button onclick="closeWhDetailsModal()" class="px-4 py-2 bg-slate-700 text-white rounded font-bold text-xs">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-maint-details" class="fixed inset-0 bg-slate-900/60 hidden flex justify-center items-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div id="printable-maint-single" class="printable-area p-4 space-y-4 bg-white border rounded-lg">
+                <div class="flex justify-between items-center border-b-2 border-slate-900 pb-3">
+                    <div>
+                        <h2 class="text-lg font-black text-slate-900">GCS - General Communication System</h2>
+                        <p class="text-xs font-bold text-slate-600">أمر زيارة وصيانة ميدانية</p>
+                    </div>
+                    <div class="text-left">
+                        <span id="maint-modal-id" class="bg-slate-900 text-white font-mono font-bold text-xs px-2.5 py-1 rounded">MAINT-5001</span>
+                        <p id="maint-modal-date" class="text-xs font-bold text-slate-500 mt-1">2026-11-08</p>
+                    </div>
+                </div>
+                <div id="maint-modal-info" class="text-xs space-y-2 bg-slate-50 p-3 rounded border"></div>
+                <div class="flex justify-between text-xs pt-8 border-t"><div class="text-center w-36"><p class="font-bold">توقيع الفني</p></div><div class="text-center w-36"><p class="font-bold">توقيع العميل / الشركة</p></div></div>
+            </div>
+            <div class="flex justify-between items-center pt-3 border-t">
+                <button onclick="printElement('printable-maint-single')" class="px-4 py-2 bg-blue-600 text-white rounded font-bold text-xs shadow hover:bg-blue-700">🖨️ طباعة أمر الصيانة فقط</button>
+                <button onclick="closeMaintDetailsModal()" class="px-4 py-2 bg-slate-700 text-white rounded font-bold text-xs">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-invoice-details" class="fixed inset-0 bg-slate-900/60 hidden flex justify-center items-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div id="printable-inv-single" class="printable-area p-4 space-y-3 bg-white border rounded-lg">
+                <h3 class="text-base font-bold text-blue-700 border-b pb-2">📄 تفاصيل الفاتورة الرسمية</h3>
+                <div id="modal-inv-content" class="text-xs md:text-sm space-y-2"></div>
+            </div>
+            <div class="flex justify-between items-center pt-3 border-t">
+                <button onclick="printElement('printable-inv-single')" class="px-4 py-2 bg-indigo-600 text-white rounded font-bold text-xs shadow">🖨️ طباعة هذه الفاتورة فقط</button>
+                <button onclick="closeInvoiceDetailsModal()" class="px-4 py-2 bg-slate-700 text-white rounded font-bold text-xs">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-product" class="fixed inset-0 bg-slate-900/60 hidden flex justify-center items-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4">
+            <h3 class="text-base font-bold border-b pb-2">إضافة / تعديل صنف</h3>
+            <input type="hidden" id="prod-edit-index" value="-1">
+            <div class="space-y-3 text-xs">
+                <div><label class="font-bold">الكود:</label><input type="text" id="prod-code" class="w-full border rounded p-2"></div>
+                <div><label class="font-bold">الاسم:</label><input type="text" id="prod-name" class="w-full border rounded p-2"></div>
+                <div><label class="font-bold">الفئة:</label><select id="prod-category" class="w-full border rounded p-2"><option value="كاميرات مراقبة">كاميرات مراقبة</option><option value="أجهزة تسجيل NVR/DVR">أجهزة تسجيل NVR/DVR</option><option value="سنترالات وهواتف">سنترالات وهواتف</option></select></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="font-bold">التكلفة:</label><input type="number" id="prod-cost" class="w-full border rounded p-2"></div>
+                    <div><label class="font-bold">سعر البيع:</label><input type="number" id="prod-price" class="w-full border rounded p-2"></div>
+                </div>
+                <div><label class="font-bold">الرصيد:</label><input type="number" id="prod-stock" class="w-full border rounded p-2"></div>
+            </div>
+            <div class="flex justify-end gap-2 border-t pt-3"><button onclick="closeProductModal()" class="px-4 py-1 bg-slate-200 rounded text-xs font-bold">إلغاء</button><button onclick="saveProductItem()" class="px-4 py-1 bg-emerald-600 text-white rounded text-xs font-bold">حفظ</button></div>
+        </div>
+    </div>
+
+    <div id="modal-supplier" class="fixed inset-0 bg-slate-900/60 hidden flex justify-center items-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4">
+            <h3 class="text-base font-bold border-b pb-2">إضافة مورد</h3>
+            <div class="space-y-3 text-xs">
+                <div><label class="font-bold">اسم المورد:</label><input type="text" id="sup-name" class="w-full border rounded p-2"></div>
+                <div><label class="font-bold">الهاتف:</label><input type="text" id="sup-phone" class="w-full border rounded p-2"></div>
+                <div><label class="font-bold">التخصص:</label><input type="text" id="sup-specialty" class="w-full border rounded p-2"></div>
+            </div>
+            <div class="flex justify-end gap-2 border-t pt-3"><button onclick="closeSupplierModal()" class="px-4 py-1 bg-slate-200 rounded text-xs font-bold">إلغاء</button><button onclick="saveSupplierItem()" class="px-4 py-1 bg-blue-600 text-white rounded text-xs font-bold">حفظ</button></div>
+        </div>
+    </div>
+
+    <div id="modal-warehouse" class="fixed inset-0 bg-slate-900/60 hidden flex justify-center items-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-base font-bold text-slate-800 border-b pb-2">تسجيل إذن مخزني أو أمر توريد جديد</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div><label class="font-bold mb-1 block">نوع الحركة:</label>
+                    <select id="wh-type" class="w-full border rounded p-2 font-bold">
+                        <option value="استلام بضاعة (وارد)">📥 إذن استلام بضاعة (يزيد المخزن)</option>
+                        <option value="أمر توريد / صرف (صادر)">📤 أمر توريد / صرف للعميل (يخصم المخزن)</option>
+                    </select>
+                </div>
+                <div><label class="font-bold mb-1 block">اسم الشركة / الجهة:</label><input type="text" id="wh-party" placeholder="اسم الشركة" class="w-full border rounded p-2 font-bold"></div>
+                <div><label class="font-bold mb-1 block">رقم أمر التوريد (P.O):</label><input type="text" id="wh-po" class="w-full border rounded p-2 font-mono"></div>
+                <div><label class="font-bold mb-1 block">المسؤول / المهندس:</label><input type="text" id="wh-handler" class="w-full border rounded p-2"></div>
+            </div>
+            <div class="space-y-2">
+                <div class="flex justify-between items-center"><h4 class="font-bold text-xs">الأصناف:</h4><button onclick="addWarehouseRowModal()" class="bg-slate-200 text-xs font-bold px-2 py-1 rounded">➕ إضافة صنف</button></div>
+                <table class="w-full text-right text-xs border-collapse">
+                    <thead><tr class="bg-slate-800 text-white"><th class="p-1.5 border">الصنف</th><th class="p-1.5 border w-20 text-center">الكمية</th><th class="p-1.5 border w-10 text-center">حذف</th></tr></thead>
+                    <tbody id="wh-modal-items-body"></tbody>
+                </table>
+            </div>
+            <div class="flex justify-end gap-2 border-t pt-3"><button onclick="closeWarehouseModal()" class="px-4 py-1.5 bg-slate-200 rounded font-bold text-xs">إلغاء</button><button onclick="saveWarehouseVoucher()" class="px-4 py-1.5 bg-emerald-600 text-white rounded font-bold text-xs shadow">حفظ وترحيل</button></div>
+        </div>
+    </div>
+
+    <div id="modal-maintenance" class="fixed inset-0 bg-slate-900/60 hidden flex justify-center items-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-base font-bold text-slate-800 border-b pb-2">تسجيل أمر زيارة صيانة ميدانية</h3>
+            <div class="space-y-3 text-xs">
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="font-bold mb-1 block">اسم الشركة / العميل:</label><input type="text" id="maint-cust-name" class="w-full border rounded p-2 font-bold"></div>
+                    <div><label class="font-bold mb-1 block">رقم الهاتف:</label><input type="text" id="maint-cust-phone" class="w-full border rounded p-2"></div>
+                </div>
+                <div><label class="font-bold mb-1 block">الفني المسؤول:</label><input type="text" id="maint-tech" class="w-full border rounded p-2"></div>
+                <div><label class="font-bold mb-1 block">وصف العطل أو سبب الزيارة:</label><textarea id="maint-reason" rows="2" class="w-full border rounded p-2"></textarea></div>
+                <div><label class="font-bold mb-1 block">إجمالي التكلفة (ج.م):</label><input type="number" id="maint-cost" value="0" class="w-full border rounded p-2 font-bold text-blue-700"></div>
+            </div>
+            <div class="flex justify-end gap-2 border-t pt-3"><button onclick="closeMaintenanceModal()" class="px-4 py-1.5 bg-slate-200 rounded font-bold text-xs">إلغاء</button><button onclick="saveMaintenanceOrder()" class="px-4 py-1.5 bg-blue-600 text-white rounded font-bold text-xs shadow">حفظ أمر الصيانة</button></div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const initialInventory = [
+            { code: 'CAM-01', name: 'Hikvision 2MP Outdoor Bullet Camera', category: 'كاميرات مراقبة', cost: 550, price: 850, stock: 25 },
+            { code: 'CAM-02', name: 'Dahua 2MP Dome Indoor Camera', category: 'كاميرات مراقبة', cost: 500, price: 780, stock: 30 },
+            { code: 'DVR-01', name: 'Hikvision 4-Channel DVR 1080p', category: 'أجهزة تسجيل NVR/DVR', cost: 1300, price: 1850, stock: 10 },
+            { code: 'DVR-02', name: 'Dahua 8-Channel XVR 4K', category: 'أجهزة تسجيل NVR/DVR', cost: 2400, price: 3300, stock: 8 },
+            { code: 'PABX-01', name: 'Grandstream IP PBX UCM6300', category: 'سنترالات وهواتف', cost: 6500, price: 8500, stock: 4 },
+            { code: 'IP-PHONE', name: 'Cisco IP Phone 7911 / SIP', category: 'سنترالات وهواتف', cost: 850, price: 1250, stock: 15 }
+        ];
+
+        window.inventory = JSON.parse(localStorage.getItem('gcs_inventory')) || initialInventory;
+        window.invoices = JSON.parse(localStorage.getItem('gcs_invoices')) || [];
+        window.receiptVouchers = JSON.parse(localStorage.getItem('gcs_receipts')) || [];
+        window.suppliers = JSON.parse(localStorage.getItem('gcs_suppliers')) || [];
+        window.maintenanceOrders = JSON.parse(localStorage.getItem('gcs_maintenance')) || [];
+        window.warehouseVouchers = JSON.parse(localStorage.getItem('gcs_warehouse')) || [];
+
+        function saveState() {
+            localStorage.setItem('gcs_inventory', JSON.stringify(window.inventory));
+            localStorage.setItem('gcs_invoices', JSON.stringify(window.invoices));
+            localStorage.setItem('gcs_receipts', JSON.stringify(window.receiptVouchers));
+            localStorage.setItem('gcs_suppliers', JSON.stringify(window.suppliers));
+            localStorage.setItem('gcs_maintenance', JSON.stringify(window.maintenanceOrders));
+            localStorage.setItem('gcs_warehouse', JSON.stringify(window.warehouseVouchers));
+        }
+
+        window.switchTab = function(tabName) {
+            ['invoice', 'receipt', 'quotation', 'inventory', 'client-statement', 'suppliers', 'warehouse-vouchers', 'maintenance', 'accounts'].forEach(t => {
+                document.getElementById(`section-${t}`)?.classList.add('hidden');
+                const btn = document.getElementById(`tab-${t}`);
+                if(btn) { btn.classList.remove('bg-blue-600', 'text-white', 'shadow'); btn.classList.add('text-slate-300'); }
+            });
+            document.getElementById(`section-${tabName}`)?.classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            if(activeBtn) { activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow'); activeBtn.classList.remove('text-slate-300'); }
+
+            if (tabName === 'inventory') renderInventoryTable();
+            if (tabName === 'accounts') renderAccountsTable();
+            if (tabName === 'client-statement') populateClientDropdown();
+            if (tabName === 'suppliers') renderSuppliersTable();
+            if (tabName === 'warehouse-vouchers') renderWarehouseTable();
+            if (tabName === 'maintenance') renderMaintenanceTable();
+        };
+
+        window.exportTableToExcel = function(tableBodyId, filename) {
+            const table = document.getElementById(tableBodyId)?.parentElement;
+            if (!table) return;
+            const wb = XLSX.utils.table_to_book(table, { sheet: "GCS_Report" });
+            XLSX.writeFile(wb, `${filename}.xlsx`);
+        };
+
+        window.printElement = function(elementId) {
+            const printContent = document.getElementById(elementId);
+            if (!printContent) return;
+            const winPrint = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
+            winPrint.document.write(`
+                <html lang="ar" dir="rtl">
+                <head>
+                    <title>طباعة GCS</title>
+                    <script src="https://cdn.tailwindcss.com"><\/script>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+                        body { font-family: 'Cairo', sans-serif; background: white; padding: 20px; }
+                        .no-print { display: none !important; }
+                    </style>
+                </head>
+                <body>
+                    ${printContent.innerHTML}
+                </body>
+                </html>
+            `);
+            winPrint.document.close();
+            winPrint.focus();
+            setTimeout(() => { winPrint.print(); winPrint.close(); }, 500);
+        };
+
+        // INVOICES LOGIC
+        window.addInvoiceRow = function() {
+            const tbody = document.getElementById('invoice-items-body');
+            if (!tbody) return;
+            const rowCount = tbody.children.length + 1;
+            const tr = document.createElement('tr');
+            tr.className = "border-b text-xs hover:bg-slate-50";
+
+            let optionsHtml = '<option value="">-- اختر الصنف --</option>';
+            window.inventory.forEach((item, index) => { optionsHtml += `<option value="${index}">${item.name} (رصيد: ${item.stock})</option>`; });
+
+            tr.innerHTML = `
+                <td class="p-2 border text-center font-bold text-slate-500">${rowCount}</td>
+                <td class="p-2 border"><select onchange="onInvoiceItemSelect(this)" class="w-full bg-transparent outline-none font-bold">${optionsHtml}</select></td>
+                <td class="p-2 border"><input type="text" placeholder="S/N" class="w-full bg-transparent outline-none font-mono text-center text-xs"></td>
+                <td class="p-2 border text-center"><input type="number" value="1" min="1" oninput="calculateTotals()" class="w-12 text-center bg-transparent outline-none font-bold"></td>
+                <td class="p-2 border text-center"><input type="number" value="0" oninput="checkPriceVsCost(this); calculateTotals()" class="w-20 text-center bg-transparent outline-none font-bold text-blue-700"></td>
+                <td class="p-2 border text-center font-extrabold text-slate-900 inv-item-total">0.00</td>
+                <td class="p-2 border text-center no-print"><button onclick="removeRow(this)" class="text-red-500 font-bold">✕</button></td>
+            `;
+            tbody.appendChild(tr);
+        };
+
+        window.onInvoiceItemSelect = function(selectElem) {
+            const row = selectElem.closest('tr');
+            const itemIndex = selectElem.value;
+            const priceInput = row.cells[4].querySelector('input');
+            if (itemIndex !== "") { priceInput.value = window.inventory[itemIndex].price; checkPriceVsCost(priceInput); } else { priceInput.value = 0; }
+            calculateTotals();
+        };
+
+        window.checkPriceVsCost = function(priceInput) {
+            const row = priceInput.closest('tr');
+            const itemIndex = row.cells[1].querySelector('select').value;
+            const warningBox = document.getElementById('price-warning-box');
+            if (itemIndex !== "" && (parseFloat(priceInput.value) || 0) <= window.inventory[itemIndex].cost * 1.05) {
+                warningBox.classList.remove('hidden');
+            } else { warningBox.classList.add('hidden'); }
+        };
+
+        window.removeRow = function(btn) { btn.closest('tr').remove(); calculateTotals(); };
+
+        window.calculateTotals = function() {
+            let totalDevices = 0;
+            document.querySelectorAll('#invoice-items-body tr').forEach(row => {
+                const qty = parseFloat(row.cells[3].querySelector('input')?.value) || 0;
+                const price = parseFloat(row.cells[4].querySelector('input')?.value) || 0;
+                const total = qty * price;
+                row.querySelector('.inv-item-total').innerText = total.toFixed(2);
+                totalDevices += total;
+            });
+            const cables = parseFloat(document.getElementById('cost-cables')?.value) || 0;
+            const installation = parseFloat(document.getElementById('cost-installation')?.value) || 0;
+            const subTotal = totalDevices + cables + installation;
+            const taxRate = parseFloat(document.getElementById('tax-rate')?.value) || 0;
+            const taxVal = (subTotal * taxRate) / 100;
+            const grandTotal = subTotal + taxVal;
+            const paid = parseFloat(document.getElementById('paid-amount')?.value) || 0;
+
+            document.getElementById('sum-devices').innerText = totalDevices.toFixed(2) + ' ج.م';
+            document.getElementById('sum-services').innerText = (cables + installation).toFixed(2) + ' ج.م';
+            document.getElementById('sum-tax-val').innerText = taxVal.toFixed(2) + ' ج.م';
+            document.getElementById('sum-grand-total').innerText = grandTotal.toFixed(2) + ' ج.م';
+            document.getElementById('remaining-amount').innerText = Math.max(0, grandTotal - paid).toFixed(2) + ' ج.م';
+        };
+
+        window.saveInvoiceData = function() {
+            const customerName = document.getElementById('cust-name').value.trim();
+            if (!customerName) { alert('أدخل اسم العميل'); return null; }
+            const items = []; let totalDevices = 0, totalCostOfItems = 0;
+            document.querySelectorAll('#invoice-items-body tr').forEach(row => {
+                const itemIndex = row.cells[1].querySelector('select').value;
+                const qty = parseFloat(row.cells[3].querySelector('input')?.value) || 0;
+                const price = parseFloat(row.cells[4].querySelector('input')?.value) || 0;
+                if (itemIndex !== "" && qty > 0) {
+                    const stockItem = window.inventory[itemIndex];
+                    items.push({ code: stockItem.code, name: stockItem.name, qty: qty, price: price, cost: stockItem.cost });
+                    totalDevices += (qty * price); totalCostOfItems += (qty * stockItem.cost);
+                    stockItem.stock = Math.max(0, stockItem.stock - qty);
+                }
+            });
+            const subTotal = totalDevices + (parseFloat(document.getElementById('cost-cables').value) || 0) + (parseFloat(document.getElementById('cost-installation').value) || 0);
+            const grandTotal = subTotal + (subTotal * (parseFloat(document.getElementById('tax-rate').value) || 0)) / 100;
+            const paid = parseFloat(document.getElementById('paid-amount').value) || 0;
+            
+            const inv = {
+                id: document.getElementById('inv-number-display').innerText,
+                date: document.getElementById('inv-date').value,
+                customer: customerName,
+                grandTotal: grandTotal,
+                paid: paid,
+                remaining: Math.max(0, grandTotal - paid),
+                profit: subTotal - totalCostOfItems,
+                items: items,
+                paymentType: document.getElementById('inv-payment-type').value
+            };
+            window.invoices.push(inv); saveState();
+            document.getElementById('inv-number-display').innerText = 'INV-' + (1001 + window.invoices.length);
+            return inv;
+        };
+        window.saveOnlyInvoice = function() { if(saveInvoiceData()) { alert('تم الحفظ بنجاح!'); renderAccountsTable(); renderInventoryTable(); } };
+        window.saveAndPrintInvoice = function() { if(saveInvoiceData()) { renderAccountsTable(); renderInventoryTable(); printElement('printable-invoice'); } };
+
+        // QUOTATIONS LOGIC
+        window.addQuoteRow = function() {
+            const tbody = document.getElementById('quote-items-body');
+            if(!tbody) return;
+            const rowCount = tbody.children.length + 1;
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-slate-300 text-xs hover:bg-slate-50";
+
+            let optionsHtml = '<option value="">-- اختر الصنف --</option>';
+            window.inventory.forEach((item, index) => { optionsHtml += `<option value="${index}">${item.name}</option>`; });
+
+            tr.innerHTML = `
+                <td class="p-2 border border-slate-300 text-center font-bold text-slate-600">${rowCount}</td>
+                <td class="p-2 border border-slate-300"><select onchange="onQuoteItemSelect(this)" class="w-full bg-transparent outline-none font-bold text-slate-900">${optionsHtml}</select></td>
+                <td class="p-2 border border-slate-300 text-center"><input type="number" value="1" min="1" oninput="calculateQuoteTotals()" class="w-12 text-center bg-transparent outline-none font-bold"></td>
+                <td class="p-2 border border-slate-300 text-center"><input type="number" value="0" oninput="calculateQuoteTotals()" class="w-20 text-center bg-transparent outline-none font-bold text-slate-900"></td>
+                <td class="p-2 border border-slate-300 text-center font-extrabold text-slate-900 quote-item-total">0.00</td>
+                <td class="p-2 border border-slate-300 text-center no-print"><button onclick="this.closest('tr').remove(); calculateQuoteTotals();" class="text-red-500 font-bold">✕</button></td>
+            `;
+            tbody.appendChild(tr);
+        };
+
+        window.onQuoteItemSelect = function(selectElem) {
+            const row = selectElem.closest('tr');
+            const itemIndex = selectElem.value;
+            const priceInput = row.cells[3].querySelector('input');
+            if (itemIndex !== "") { priceInput.value = window.inventory[itemIndex].price; } else { priceInput.value = 0; }
+            calculateQuoteTotals();
+        };
+
+        window.calculateQuoteTotals = function() {
+            let totalDevices = 0;
+            document.querySelectorAll('#quote-items-body tr').forEach(row => {
+                const qty = parseFloat(row.cells[2].querySelector('input')?.value) || 0;
+                const price = parseFloat(row.cells[3].querySelector('input')?.value) || 0;
+                const total = qty * price;
+                row.querySelector('.quote-item-total').innerText = total.toFixed(2);
+                totalDevices += total;
+            });
+            const cables = parseFloat(document.getElementById('quote-cables')?.value) || 0;
+            const installation = parseFloat(document.getElementById('quote-installation')?.value) || 0;
+            const subTotal = totalDevices + cables + installation;
+            const taxRate = parseFloat(document.getElementById('quote-tax-rate')?.value) || 0;
+            const taxVal = (subTotal * taxRate) / 100;
+            const grandTotal = subTotal + taxVal;
+
+            document.getElementById('quote-sum-devices').innerText = totalDevices.toFixed(2) + ' ج.م';
+            document.getElementById('quote-sum-services').innerText = (cables + installation).toFixed(2) + ' ج.م';
+            document.getElementById('quote-sum-tax').innerText = taxVal.toFixed(2) + ' ج.م';
+            document.getElementById('quote-sum-grand').innerText = grandTotal.toFixed(2) + ' ج.م';
+        };
+
+        window.printQuotation = function() { printElement('printable-quotation'); };
+
+        window.convertQuotationToInvoice = function() {
+            document.getElementById('cust-name').value = document.getElementById('quote-cust-name').value;
+            document.getElementById('cust-phone').value = document.getElementById('quote-cust-phone').value;
+            document.getElementById('inv-po-number').value = document.getElementById('quote-po-number').value;
+            document.getElementById('cust-address').value = document.getElementById('quote-cust-address').value;
+            switchTab('invoice');
+            alert('تم تحويل عرض السعر إلى صفحة الفواتير بنجاح!');
+        };
+
+        // RECEIPT VOUCHERS LOGIC
+        window.printReceiptVoucher = function() {
+            const cust = document.getElementById('receipt-cust-name').value.trim();
+            const amount = parseFloat(document.getElementById('receipt-amount').value) || 0;
+            if(!cust || amount <= 0) { alert('يرجى أدخل اسم العميل والمبلغ الصحيح'); return; }
+
+            const rec = {
+                id: document.getElementById('receipt-id-display').innerText,
+                date: document.getElementById('receipt-date').value,
+                customer: cust,
+                amount: amount,
+                reason: document.getElementById('receipt-for').value,
+                method: document.getElementById('receipt-method').value
+            };
+            window.receiptVouchers.push(rec);
+
+            let remAmount = amount;
+            window.invoices.forEach(inv => {
+                if(inv.customer.trim().toLowerCase() === cust.toLowerCase() && inv.remaining > 0 && remAmount > 0) {
+                    let deducted = Math.min(inv.remaining, remAmount);
+                    inv.paid += deducted;
+                    inv.remaining -= deducted;
+                    remAmount -= deducted;
+                }
+            });
+
+            saveState();
+            renderAccountsTable();
+            printElement('printable-receipt');
+            document.getElementById('receipt-id-display').innerText = 'REC-' + (3001 + window.receiptVouchers.length);
+        };
+
+        // CLIENT STATEMENT LOGIC (شامل كل الأقسام)
+        function populateClientDropdown() {
+            const select = document.getElementById('statement-client-select');
+            if(!select) return;
+            select.innerHTML = '<option value="">-- اختر العملاء المسجلين --</option>';
+            
+            const clientSet = new Set();
+            window.invoices.forEach(i => clientSet.add(i.customer.trim()));
+            window.receiptVouchers.forEach(r => clientSet.add(r.customer.trim()));
+            window.warehouseVouchers.forEach(w => clientSet.add(w.party.trim()));
+            window.maintenanceOrders.forEach(m => clientSet.add(m.customer.trim()));
+
+            clientSet.forEach(cName => {
+                select.innerHTML += `<option value="${cName}">${cName}</option>`;
+            });
+        }
+
+        window.renderClientStatement = function() {
+            const clientName = document.getElementById('statement-client-select').value;
+            const finBody = document.getElementById('statement-financial-body');
+            const whBody = document.getElementById('statement-warehouse-body');
+            const maintBody = document.getElementById('statement-maintenance-body');
+            
+            if(!finBody || !whBody || !maintBody) return;
+            finBody.innerHTML = '';
+            whBody.innerHTML = '';
+            maintBody.innerHTML = '';
+
+            if(!clientName) {
+                document.getElementById('stmt-client-name-display').innerText = 'اسم العميل: (اختر عميلاً)';
+                document.getElementById('stmt-total-invoices').innerText = '0.00 ج.م';
+                document.getElementById('stmt-total-paid').innerText = '0.00 ج.م';
+                document.getElementById('stmt-total-maint').innerText = '0.00 ج.م';
+                document.getElementById('stmt-total-remaining').innerText = '0.00 ج.م';
+                return;
+            }
+
+            document.getElementById('stmt-client-name-display').innerText = 'اسم العميل / الشركة: ' + clientName;
+            document.getElementById('stmt-date-display').innerText = 'تاريخ التقرير: ' + new Date().toISOString().split('T')[0];
+
+            let transactions = [];
+            let totalInvoiced = 0;
+            let totalPaid = 0;
+            let totalMaintCost = 0;
+
+            // 1. الفواتير
+            window.invoices.forEach(inv => {
+                if(inv.customer.trim().toLowerCase() === clientName.toLowerCase()) {
+                    totalInvoiced += inv.grandTotal;
+                    totalPaid += inv.paid;
+                    transactions.push({
+                        date: inv.date,
+                        id: inv.id,
+                        type: 'فاتورة مبيعات (' + inv.paymentType + ')',
+                        debit: inv.grandTotal,
+                        credit: inv.paid
+                    });
+                }
+            });
+
+            // 2. سندات القبض
+            window.receiptVouchers.forEach(rec => {
+                if(rec.customer.trim().toLowerCase() === clientName.toLowerCase()) {
+                    totalPaid += rec.amount;
+                    transactions.push({
+                        date: rec.date,
+                        id: rec.id,
+                        type: 'سند قبض (' + rec.reason + ')',
+                        debit: 0,
+                        credit: rec.amount
+                    });
+                }
+            });
+
+            transactions.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            let runningBalance = 0;
+            transactions.forEach(t => {
+                runningBalance += (t.debit - t.credit);
+                finBody.innerHTML += `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="p-2.5 font-mono">${t.date}</td>
+                        <td class="p-2.5 font-bold font-mono text-blue-700">${t.id}</td>
+                        <td class="p-2.5">${t.type}</td>
+                        <td class="p-2.5 font-bold text-slate-800">${t.debit > 0 ? t.debit.toFixed(2) + ' ج.م' : '-'}</td>
+                        <td class="p-2.5 font-bold text-emerald-600">${t.credit > 0 ? t.credit.toFixed(2) + ' ج.م' : '-'}</td>
+                        <td class="p-2.5 font-black text-red-600">${runningBalance.toFixed(2)} ج.م</td>
+                    </tr>
+                `;
+            });
+
+            if(transactions.length === 0) {
+                finBody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-500">لا توجد معاملات مالية مسجلة</td></tr>`;
+            }
+
+            // 3. أذون المخزن وأوامر التوريد
+            let whCount = 0;
+            window.warehouseVouchers.forEach(w => {
+                if(w.party.trim().toLowerCase() === clientName.toLowerCase()) {
+                    whCount++;
+                    let itemsSummary = w.items.map(it => `${it.name} (${it.qty})`).join(', ');
+                    whBody.innerHTML += `
+                        <tr class="border-b hover:bg-slate-50">
+                            <td class="p-2.5 font-mono font-bold text-red-600">${w.id}</td>
+                            <td class="p-2.5 font-mono">${w.date}</td>
+                            <td class="p-2.5 font-bold">${w.type}</td>
+                            <td class="p-2.5 font-mono">${w.po || '-'}</td>
+                            <td class="p-2.5">${itemsSummary}</td>
+                        </tr>
+                    `;
+                }
+            });
+            if(whCount === 0) {
+                whBody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-500">لا توجد أذون مخزن أو أوامر توريد مسجلة</td></tr>`;
+            }
+
+            // 4. سجل الصيانة
+            let maintCount = 0;
+            window.maintenanceOrders.forEach(m => {
+                if(m.customer.trim().toLowerCase() === clientName.toLowerCase()) {
+                    maintCount++;
+                    totalMaintCost += m.cost;
+                    maintBody.innerHTML += `
+                        <tr class="border-b hover:bg-slate-50">
+                            <td class="p-2.5 font-mono font-bold text-red-600">${m.id}</td>
+                            <td class="p-2.5 font-mono">${m.date}</td>
+                            <td class="p-2.5">${m.tech || '-'}</td>
+                            <td class="p-2.5">${m.reason}</td>
+                            <td class="p-2.5 font-bold text-blue-700">${m.cost.toFixed(2)} ج.م</td>
+                        </tr>
+                    `;
+                }
+            });
+            if(maintCount === 0) {
+                maintBody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-500">لا توجد أوامر صيانة أو زيارات مسجلة</td></tr>`;
+            }
+
+            document.getElementById('stmt-total-invoices').innerText = totalInvoiced.toFixed(2) + ' ج.م';
+            document.getElementById('stmt-total-paid').innerText = totalPaid.toFixed(2) + ' ج.م';
+            document.getElementById('stmt-total-maint').innerText = totalMaintCost.toFixed(2) + ' ج.م';
+            document.getElementById('stmt-total-remaining').innerText = Math.max(0, runningBalance).toFixed(2) + ' ج.م';
+        };
+
+        // INVENTORY
+        window.renderInventoryTable = function() {
+            const tbody = document.getElementById('inventory-table-body');
+            if (!tbody) return;
+            const search = (document.getElementById('inv-search')?.value || '').toLowerCase();
+            const catFilter = document.getElementById('inv-category-filter')?.value || 'all';
+            tbody.innerHTML = '';
+            window.inventory.forEach((item, index) => {
+                if (catFilter !== 'all' && item.category !== catFilter) return;
+                if (!item.name.toLowerCase().includes(search) && !item.code.toLowerCase().includes(search)) return;
+                let lastPrice = 'لا يوجد', lastDate = '-';
+                for (let i = window.invoices.length - 1; i >= 0; i--) {
+                    const found = window.invoices[i].items.find(it => it.code === item.code || it.name.trim() === item.name.trim());
+                    if (found) { lastPrice = found.price.toFixed(2) + ' ج.م'; lastDate = window.invoices[i].date; break; }
+                }
+                tbody.innerHTML += `<tr class="border-b hover:bg-slate-50"><td class="p-3 font-mono font-bold text-blue-700">${item.code}</td><td class="p-3 font-bold">${item.name}</td><td class="p-3 font-bold text-slate-700">${item.cost.toFixed(2)} ج.م</td><td class="p-3 font-bold text-blue-900">${item.price.toFixed(2)} ج.م</td><td class="p-3 text-center font-black">${item.stock}</td><td class="p-3 font-bold text-blue-600">${lastPrice}</td><td class="p-3 text-slate-500 text-xs">${lastDate}</td><td class="p-3 text-center no-print"><button onclick="editProduct(${index})" class="bg-amber-500 text-white px-2 py-1 rounded text-xs font-bold">تعديل</button></td></tr>`;
+            });
+        };
+        window.openAddProductModal = function() { document.getElementById('prod-edit-index').value = "-1"; document.getElementById('prod-code').value = 'ITEM-' + (window.inventory.length + 1); document.getElementById('prod-name').value = ''; document.getElementById('modal-product').classList.remove('hidden'); };
+        window.closeProductModal = function() { document.getElementById('modal-product').classList.add('hidden'); };
+        window.editProduct = function(index) {
+            const item = window.inventory[index];
+            document.getElementById('prod-edit-index').value = index;
+            document.getElementById('prod-code').value = item.code; document.getElementById('prod-name').value = item.name;
+            document.getElementById('prod-cost').value = item.cost; document.getElementById('prod-price').value = item.price; document.getElementById('prod-stock').value = item.stock;
+            document.getElementById('modal-product').classList.remove('hidden');
+        };
+        window.saveProductItem = function() {
+            const editIndex = parseInt(document.getElementById('prod-edit-index').value);
+            const data = { code: document.getElementById('prod-code').value, name: document.getElementById('prod-name').value, category: document.getElementById('prod-category').value, cost: parseFloat(document.getElementById('prod-cost').value) || 0, price: parseFloat(document.getElementById('prod-price').value) || 0, stock: parseInt(document.getElementById('prod-stock').value) || 0 };
+            if(!data.name) { alert('أدخل اسم الصنف'); return; }
+            if(editIndex >= 0) window.inventory[editIndex] = data; else window.inventory.push(data);
+            saveState(); renderInventoryTable(); closeProductModal();
+        };
+
+        // SUPPLIERS
+        window.renderSuppliersTable = function() {
+            const tbody = document.getElementById('suppliers-table-body');
+            if(!tbody) return;
+            const search = (document.getElementById('sup-search')?.value || '').toLowerCase();
+            tbody.innerHTML = '';
+            window.suppliers.forEach((s, index) => {
+                if(s.name.toLowerCase().includes(search)) tbody.innerHTML += `<tr class="border-b"><td class="p-3 font-bold">${s.name}</td><td class="p-3 font-mono">${s.phone}</td><td class="p-3">${s.specialty}</td><td class="p-3 text-center no-print"><button onclick="window.suppliers.splice(${index},1); saveState(); renderSuppliersTable();" class="text-red-500 font-bold">حذف</button></td></tr>`;
+            });
+        };
+        window.openAddSupplierModal = function() { document.getElementById('modal-supplier').classList.remove('hidden'); };
+        window.closeSupplierModal = function() { document.getElementById('modal-supplier').classList.add('hidden'); };
+        window.saveSupplierItem = function() {
+            const s = { name: document.getElementById('sup-name').value, phone: document.getElementById('sup-phone').value, specialty: document.getElementById('sup-specialty').value };
+            if(!s.name) { alert('أدخل اسم المورد'); return; }
+            window.suppliers.push(s); saveState(); renderSuppliersTable(); closeSupplierModal();
+        };
+
+        // WAREHOUSE VOUCHERS / ORDERS
+        window.renderWarehouseTable = function() {
+            const tbody = document.getElementById('warehouse-table-body');
+            if(!tbody) return;
+            const search = (document.getElementById('wh-search')?.value || '').toLowerCase();
+            tbody.innerHTML = '';
+            window.warehouseVouchers.forEach((w, index) => {
+                if(w.party.toLowerCase().includes(search) || w.id.toLowerCase().includes(search)) {
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-slate-50">
+                            <td class="p-3 font-mono font-bold text-red-600">${w.id}</td>
+                            <td class="p-3 font-bold">${w.type}</td>
+                            <td class="p-3">${w.date}</td>
+                            <td class="p-3 font-bold">${w.party}</td>
+                            <td class="p-3">${w.handler}</td>
+                            <td class="p-3 text-center">${w.items.length} أصناف</td>
+                            <td class="p-3 text-center no-print"><button onclick="openWhDetailsModal(${index})" class="bg-blue-600 text-white px-2.5 py-1 rounded text-xs font-bold shadow">👁️ عرض وطباعة</button></td>
+                            <td class="p-3 text-center no-print"><button onclick="window.warehouseVouchers.splice(${index},1); saveState(); renderWarehouseTable();" class="text-red-500 font-bold">حذف</button></td>
+                        </tr>
+                    `;
+                }
+            });
+        };
+
+        window.openWhDetailsModal = function(index) {
+            const w = window.warehouseVouchers[index];
+            if(!w) return;
+            document.getElementById('wh-modal-id').innerText = w.id;
+            document.getElementById('wh-modal-date').innerText = 'التاريخ: ' + w.date;
+            document.getElementById('wh-modal-info').innerHTML = `<p><strong>اسم الشركة / الجهة:</strong> ${w.party}</p><p><strong>نوع الحركة:</strong> ${w.type}</p><p><strong>أمر التوريد (P.O):</strong> ${w.po || '-'}</p><p><strong>المسؤول:</strong> ${w.handler || '-'}</p>`;
+            let itemsHtml = '';
+            w.items.forEach(it => { itemsHtml += `<tr><td class="p-2 border font-mono font-bold text-blue-700">${it.code}</td><td class="p-2 border font-bold">${it.name}</td><td class="p-2 border text-center font-bold text-emerald-700">${it.qty}</td></tr>`; });
+            document.getElementById('wh-modal-items-list').innerHTML = itemsHtml;
+            document.getElementById('modal-wh-details').classList.remove('hidden');
+        };
+        window.closeWhDetailsModal = function() { document.getElementById('modal-wh-details').classList.add('hidden'); };
+
+        window.openAddWarehouseVoucherModal = function() {
+            document.getElementById('wh-party').value = '';
+            document.getElementById('wh-po').value = '';
+            document.getElementById('wh-handler').value = '';
+            document.getElementById('wh-modal-items-body').innerHTML = '';
+            addWarehouseRowModal();
+            document.getElementById('modal-warehouse').classList.remove('hidden');
+        };
+        window.closeWarehouseModal = function() { document.getElementById('modal-warehouse').classList.add('hidden'); };
+        window.addWarehouseRowModal = function() {
+            const tbody = document.getElementById('wh-modal-items-body');
+            if (!tbody) return;
+            let optionsHtml = '<option value="">-- اختر صنف --</option>';
+            window.inventory.forEach((item, index) => { optionsHtml += `<option value="${index}">${item.name}</option>`; });
+            const tr = document.createElement('tr');
+            tr.className = "border-b";
+            tr.innerHTML = `<td class="p-1.5 border"><select class="w-full bg-transparent outline-none font-bold text-xs">${optionsHtml}</select></td><td class="p-1.5 border text-center"><input type="number" value="1" min="1" class="w-16 text-center bg-transparent outline-none font-bold"></td><td class="p-1.5 border text-center"><button onclick="this.closest('tr').remove()" class="text-red-500 font-bold">✕</button></td>`;
+            tbody.appendChild(tr);
+        };
+        window.saveWarehouseVoucher = function() {
+            const type = document.getElementById('wh-type').value;
+            const party = document.getElementById('wh-party').value;
+            if(!party) { alert('أدخل اسم الشركة أو الجهة'); return; }
+            const items = [];
+            document.querySelectorAll('#wh-modal-items-body tr').forEach(row => {
+                const itemIndex = row.cells[0].querySelector('select').value;
+                const qty = parseFloat(row.cells[1].querySelector('input').value) || 0;
+                if(itemIndex !== "" && qty > 0) {
+                    const st = window.inventory[itemIndex];
+                    items.push({ code: st.code, name: st.name, qty: qty });
+                    if(type.includes('استلام')) st.stock += qty; else st.stock = Math.max(0, st.stock - qty);
+                }
+            });
+            if(items.length === 0) { alert('أضف صنفاً واحداً على الأقل'); return; }
+            window.warehouseVouchers.push({ id: 'WH-' + (9001 + window.warehouseVouchers.length), type, date: new Date().toISOString().split('T')[0], party, po: document.getElementById('wh-po').value, handler: document.getElementById('wh-handler').value, items });
+            saveState(); renderInventoryTable(); renderWarehouseTable(); closeWarehouseModal();
+            alert('تم حفظ إذن المخزن وتحديث الأرصدة بنجاح!');
+        };
+
+        // MAINTENANCE LOGIC
+        window.renderMaintenanceTable = function() {
+            const tbody = document.getElementById('maintenance-table-body');
+            if(!tbody) return;
+            const search = (document.getElementById('maint-search')?.value || '').toLowerCase();
+            tbody.innerHTML = '';
+            window.maintenanceOrders.forEach((m, index) => {
+                if(m.customer.toLowerCase().includes(search)) {
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-slate-50">
+                            <td class="p-3 font-mono font-bold text-red-600">${m.id}</td>
+                            <td class="p-3">${m.date}</td>
+                            <td class="p-3 font-bold">${m.customer}</td>
+                            <td class="p-3">${m.tech}</td>
+                            <td class="p-3">${m.reason}</td>
+                            <td class="p-3 font-bold text-blue-700">${m.cost} ج.م</td>
+                            <td class="p-3 text-center no-print"><button onclick="openMaintDetailsModal(${index})" class="bg-blue-600 text-white px-2.5 py-1 rounded text-xs font-bold shadow">👁️ عرض وطباعة</button></td>
+                            <td class="p-3 text-center no-print"><button onclick="window.maintenanceOrders.splice(${index},1); saveState(); renderMaintenanceTable();" class="text-red-500 font-bold">حذف</button></td>
+                        </tr>
+                    `;
+                }
+            });
+        };
+
+        window.openMaintDetailsModal = function(index) {
+            const m = window.maintenanceOrders[index];
+            if(!m) return;
+            document.getElementById('maint-modal-id').innerText = m.id;
+            document.getElementById('maint-modal-date').innerText = 'التاريخ: ' + m.date;
+            document.getElementById('maint-modal-info').innerHTML = `
+                <p><strong>اسم الشركة / العميل:</strong> ${m.customer}</p>
+                <p><strong>الهاتف:</strong> ${m.phone || '-'}</p>
+                <p><strong>الفني المسؤول:</strong> ${m.tech || '-'}</p>
+                <p><strong>سبب الزيارة / العطل:</strong> ${m.reason || '-'}</p>
+                <p class="text-sm font-bold border-t pt-2 mt-1"><strong>إجمالي تكلفة الصيانة:</strong> <span class="text-blue-700 font-black">${m.cost.toFixed(2)} ج.م</span></p>
+            `;
+            document.getElementById('modal-maint-details').classList.remove('hidden');
+        };
+        window.closeMaintDetailsModal = function() { document.getElementById('modal-maint-details').classList.add('hidden'); };
+
+        window.openAddMaintenanceModal = function() {
+            document.getElementById('maint-cust-name').value = '';
+            document.getElementById('maint-cust-phone').value = '';
+            document.getElementById('maint-tech').value = '';
+            document.getElementById('maint-reason').value = '';
+            document.getElementById('maint-cost').value = '0';
+            document.getElementById('modal-maintenance').classList.remove('hidden');
+        };
+        window.closeMaintenanceModal = function() { document.getElementById('modal-maintenance').classList.add('hidden'); };
+        window.saveMaintenanceOrder = function() {
+            const cust = document.getElementById('maint-cust-name').value;
+            if(!cust) { alert('أدخل اسم الشركة أو العميل'); return; }
+            window.maintenanceOrders.push({
+                id: 'MAINT-' + (5001 + window.maintenanceOrders.length),
+                date: new Date().toISOString().split('T')[0],
+                customer: cust,
+                phone: document.getElementById('maint-cust-phone').value,
+                tech: document.getElementById('maint-tech').value,
+                reason: document.getElementById('maint-reason').value,
+                cost: parseFloat(document.getElementById('maint-cost').value) || 0
+            });
+            saveState(); renderMaintenanceTable(); closeMaintenanceModal();
+            alert('تم تسجيل أمر الصيانة والزيارة بنجاح!');
+        };
+
+        window.renderAccountsTable = function() {
+            const tbody = document.getElementById('accounts-table-body');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            window.invoices.forEach((inv, index) => {
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-slate-50 cursor-pointer">
+                        <td class="p-3 font-mono font-bold text-red-600">${inv.id}</td><td class="p-3">${inv.date}</td><td class="p-3 font-bold">${inv.customer}</td>
+                        <td class="p-3 font-bold">${inv.grandTotal.toFixed(2)} ج.م</td><td class="p-3 font-bold text-emerald-600">${inv.paid.toFixed(2)} ج.م</td><td class="p-3 font-bold text-red-600">${inv.remaining.toFixed(2)} ج.م</td>
+                        <td class="p-3 text-center no-print"><button onclick="openInvoiceDetailsModal(${index})" class="bg-indigo-600 text-white px-2.5 py-1 rounded text-xs font-bold shadow">👁️ عرض وطباعة</button></td>
+                        <td class="p-3 text-center no-print"><button onclick="window.invoices.splice(${index},1); saveState(); renderAccountsTable();" class="text-red-500 font-bold">حذف</button></td>
+                    </tr>
+                `;
+            });
+        };
+
+        window.openInvoiceDetailsModal = function(index) {
+            const inv = window.invoices[index];
+            if(!inv) return;
+            let itemsHtml = `<ul class="space-y-1 bg-slate-50 p-3 rounded">`;
+            inv.items.forEach(it => { itemsHtml += `<li class="flex justify-between border-b pb-1"><span>${it.name} (كمية: ${it.qty})</span><span class="font-bold">${(it.qty * it.price).toFixed(2)} ج.م</span></li>`; });
+            itemsHtml += `</ul>`;
+            document.getElementById('modal-inv-content').innerHTML = `<p><strong>رقم الفاتورة:</strong> ${inv.id}</p><p><strong>العميل:</strong> ${inv.customer}</p><p><strong>التاريخ:</strong> ${inv.date} | <strong>الدفع:</strong> ${inv.paymentType}</p><div class="pt-2"><strong class="block mb-1">الأصناف:</strong>${itemsHtml}</div><div class="pt-2 border-t font-bold flex justify-between"><span>الإجمالي:</span><span class="text-blue-700">${inv.grandTotal.toFixed(2)} ج.م</span></div>`;
+            document.getElementById('modal-invoice-details').classList.remove('hidden');
+        };
+        window.closeInvoiceDetailsModal = function() { document.getElementById('modal-invoice-details').classList.add('hidden'); };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            ['inv-date', 'receipt-date', 'quote-date'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = today; });
+            addInvoiceRow();
+            addQuoteRow();
+            renderInventoryTable();
+            renderAccountsTable();
+            renderSuppliersTable();
+            renderWarehouseTable();
+            renderMaintenanceTable();
+        });
+    </script>
+</body>
+</html>
